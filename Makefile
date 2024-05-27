@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -ggdb3 -Wall -Wextra -pedantic -I./src  -lpthread -fsanitize=address
+CFLAGS = -ggdb3 -Wall -Wextra -pedantic -I./src  -lpthread -fsanitize=address -O3
 
 SRCDIR = src
 INCDIR = include

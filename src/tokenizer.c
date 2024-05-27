@@ -1,6 +1,9 @@
 #include "tokenizer.h"
 #include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <errno.h>
 
 #include "magic.h"
 
@@ -53,33 +56,48 @@ int is_specials(char chr) {
 char *parse_quotes(char *code_buffer, TOKEN_TREE *tt) {
   char now = code_buffer[0];
   code_buffer++;
-  int escaped = 0, letter = 0;
-  while (code_buffer[0] && !(escaped || code_buffer[0] == now)) {
-    char cur = code_buffer[0]++;
-    if(is_specials(cur)==E_ESCAPE){
-        // used xor as it handels two pairs or '\' automatically
-        escaped^=1;
-    }else{
-        escaped=0;
+  int letter = 0;
+  tt->tokens[tt->count].value[letter++] = now;
+  while (code_buffer[0] && code_buffer[0] != now) {
+    if(is_specials(code_buffer[0])==E_ESCAPE){
+        tt->tokens[tt->count].value[letter++] = code_buffer[0];
+        code_buffer++;
     }
-    tt->tokens[tt->count].value[letter++] = cur;
+    tt->tokens[tt->count].value[letter++] = code_buffer[0];
+    code_buffer++;
+  }
+  if(code_buffer[0]){
+    tt->tokens[tt->count].value[letter++] = code_buffer[0];
     code_buffer++;
   }
   tt->count++;
   return code_buffer;
 }
 
+
 TOKEN_TREE tokenizer(char *code_buffer) {
   TOKEN_TREE tt = {0};
 
   char cur_char;
   int word_letter_count = 0;
-  tt.tokens = (TOKEN *)calloc(sizeof(TOKEN), 100);
+  tt.capacity = 100;
+  tt.tokens = (TOKEN *)calloc(sizeof(TOKEN), tt.capacity);
   tt.count = 0;
 
   while (code_buffer[0]) {
     cur_char = code_buffer[0];
     int spcl = is_specials(cur_char);
+    // doing +3 beacause thier is mutiple count increment
+    //for some cases 
+    if((tt.count+3)>=tt.capacity){
+        tt.capacity*=2;
+        void *new = reallocarray(tt.tokens,sizeof(TOKEN),tt.capacity);
+        if(new==NULL){
+            fprintf(stderr,"Error Allocating memeory %s",strerror(errno));
+        }else{
+            tt.tokens = new;
+        }
+    }
     if (spcl == E_SYMBOLS) {
       word_letter_count = 0;
       tt.tokens[++tt.count].value[word_letter_count] = cur_char;

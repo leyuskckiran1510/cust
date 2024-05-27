@@ -29,14 +29,14 @@ char* get_sample(int x) {
     // null terminating data just to be sure
     data[file_size] = '\0';
     fseek(fp, 0L, SEEK_SET);
-    fread(data, sizeof(char), file_size, fp);
+    file_size = fread(data, sizeof(char), file_size, fp);
     return data;
 }
 
 int main() {
     magic_init();
-    TOKEN_TREE tt = tokenizer(get_sample(1));
+    TOKEN_TREE tt = tokenizer(get_sample(2));
     print_token_tree(tt);
-    free_recent();
+    // free_recent();
     return 0;
 }

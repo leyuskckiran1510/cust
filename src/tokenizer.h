@@ -10,6 +10,7 @@
     typedef struct {
         TOKEN* tokens;
         int count;
+        int capacity;
     }TOKEN_TREE;
 
     TOKEN_TREE tokenizer(char *);
