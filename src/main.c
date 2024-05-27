@@ -32,11 +32,25 @@ char* get_sample(int x) {
     file_size = fread(data, sizeof(char), file_size, fp);
     return data;
 }
+int toint(char *str){
+    int value=0;
+    while (str[0]){
+        value=value*10 + str[0]-'0';
+        str++;
+    }
+    return value;
+}
 
-int main() {
+int main(int argc,char **argv) {
     magic_init();
-    TOKEN_TREE tt = tokenizer(get_sample(2));
+    TOKEN_TREE tt;
+    if(argc>1){
+        tt= tokenizer(get_sample(toint(argv[1])));
+    }else{
+         tt = tokenizer(get_sample(2));
+
+    }
     print_token_tree(tt);
-    // free_recent();
+    free_recent();
     return 0;
 }
