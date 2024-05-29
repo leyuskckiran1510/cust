@@ -1,3 +1,4 @@
+#include <stdbool.h>
 #ifndef __MAGIC__
     #include <stdint.h>
     #include <stdlib.h>
@@ -8,7 +9,6 @@
         #define MAX_MALLOCS 100
     
         #define print(...) printf(__VA_ARGS__);
-
 
 
     void *track(void *);
@@ -22,6 +22,7 @@
 
 static void* MALLOCS[MAX_MALLOCS] = {0};
 static uint MALLOC_PT = 0;
+
 void* track(void *ptr){
     MALLOCS[MALLOC_PT++] =ptr;
     return ptr; 
