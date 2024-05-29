@@ -48,15 +48,56 @@ int is_specials(char chr) {
     return E_QUOTES;
     ESCAPE
     return E_ESCAPE;
-    LINE_SWITCH 
-    return  E_LINE_SWITCH;
+    LINE_SWITCH
+    return E_LINE_SWITCH;
   default:
     return E_NON_SPECIAL;
     // printf("Splitter found [%s]\n",tt_val(tt));
   }
 }
 
-char *parse_quotes(char *code_buffer, TOKEN_TREE *tt,int line_count,int column) {
+bool is_keyword(char *word){
+     #define MAX_KEYWORD_LENGTH 14
+  int key_map[15][2] = {{0, 0},   {0, 0},   {0, 2},   {2, 4},   {4, 12},
+                        {12, 19}, {19, 28}, {28, 31}, {31, 40}, {40, 41},
+                        {41, 42}, {0, 0},   {0, 0},   {42, 43}, {43, 44}};
+  char keywords[45][14] = {
+      "if",        "do",         "for",           "int",
+      "auto",      "char",       "goto",          "long",
+      "void",      "enum",       "case",          "else",
+      "const",     "short",      "union",         "while",
+      "float",     "break",      "_Bool",         "double",
+      "return",    "sizeof",     "extern",        "struct",
+      "inline",    "signed",     "switch",        "static",
+      "typedef",   "_Atomic",    "default",       "_Complex",
+      "volatile",  "unsigned",   "register",      "_Alignas",
+      "continue",  "_Alignof",   "restrict",      "_Generic",
+      "_Noreturn", "_Imaginary", "_Thread_local", "_Static_assert",
+  };
+
+  uint length = strlen(word);
+  if(length>MAX_KEYWORD_LENGTH){
+    return STRING_LITERAL;
+  }
+  uint start = key_map[length][0];
+  uint till = key_map[length][1];
+  for (uint i = start;i < till; i++) {
+    if(strncmp(keywords[i],word,length)==0){
+        return true;
+    }
+  }
+  return false;
+}
+
+TOKEN_TYPE token_type(char *word) {
+   if(is_keyword(word)){
+        return KEYWORD;
+   }
+   return  STRING_LITERAL;
+}
+
+char *parse_quotes(char *code_buffer, TOKEN_TREE *tt, int line_count,
+                   int column) {
   char now = code_buffer[0];
   code_buffer++;
   int letter = 0;
@@ -74,7 +115,7 @@ char *parse_quotes(char *code_buffer, TOKEN_TREE *tt,int line_count,int column) 
     code_buffer++;
   }
   tt->tokens[tt->count].line_no = line_count;
-  tt->tokens[tt->count].column=column;
+  tt->tokens[tt->count].column = column;
   tt->count++;
   return code_buffer;
 }
@@ -83,11 +124,10 @@ TOKEN_TREE tokenizer(char *code_buffer) {
   TOKEN_TREE tt = {0};
 
   char cur_char;
-  int word_letter_count = 0,line_count=1,column=0;
+  int word_letter_count = 0, line_count = 1, column = 0;
   tt.capacity = 100;
   tt.tokens = (TOKEN *)calloc(sizeof(TOKEN), tt.capacity);
   tt.count = 0;
-
 
   while (code_buffer[0]) {
     cur_char = code_buffer[0];
@@ -104,33 +144,31 @@ TOKEN_TREE tokenizer(char *code_buffer) {
       }
     }
     if (spcl == E_SYMBOLS) {
-        if(word_letter_count){
-            word_letter_count = 0;
-            tt.count++;
-        }
+      if (word_letter_count) {
+        word_letter_count = 0;
+        tt.count++;
+      }
       tt.tokens[tt.count].value[word_letter_count] = cur_char;
       tt.tokens[tt.count].line_no = line_count;
-      if(word_letter_count==0)
+      if (word_letter_count == 0)
         tt.tokens[tt.count].column = column;
       tt.count++;
     } else if (spcl == E_SPLITTERS) {
-        if( word_letter_count){
-              tt.count++;
-              word_letter_count = 0;
-            
-        }
-    } else if (spcl==  E_LINE_SWITCH){
-        line_count++;
-        column=0;
-    }else if (spcl == E_QUOTES) {
-      code_buffer = parse_quotes(code_buffer, &tt,line_count,column);
+      if (word_letter_count) {
+        tt.count++;
+        word_letter_count = 0;
+      }
+    } else if (spcl == E_LINE_SWITCH) {
+      line_count++;
+      column = 0;
+    } else if (spcl == E_QUOTES) {
+      code_buffer = parse_quotes(code_buffer, &tt, line_count, column);
       code_buffer--;
     } else {
       tt_val(tt)[word_letter_count++] = cur_char;
       tt.tokens[tt.count].line_no = line_count;
-      if(word_letter_count==1)
+      if (word_letter_count == 1)
         tt.tokens[tt.count].column = column;
-    
     }
     code_buffer++;
     column++;
@@ -140,6 +178,7 @@ TOKEN_TREE tokenizer(char *code_buffer) {
 
 void print_token_tree(TOKEN_TREE tt) {
   for (int i = 0; i < tt.count; ++i) {
-    printf("[%d] '%s'  [%d|%d]\n", i, tt.tokens[i].value,tt.tokens[i].line_no,tt.tokens[i].column);
+    printf("[%d] '%s'  [%d|%d]\n", i, tt.tokens[i].value, tt.tokens[i].line_no,
+           tt.tokens[i].column);
   }
 }

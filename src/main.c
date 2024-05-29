@@ -52,5 +52,5 @@ int main(int argc,char **argv) {
     }
     print_token_tree(tt);
     free_recent();
-    return 0;
+   return 0;
 }
