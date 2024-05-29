@@ -56,8 +56,8 @@ int is_specials(char chr) {
   }
 }
 
-bool is_keyword(char *word){
-     #define MAX_KEYWORD_LENGTH 14
+bool is_keyword(char *word) {
+#define MAX_KEYWORD_LENGTH 14
   int key_map[15][2] = {{0, 0},   {0, 0},   {0, 2},   {2, 4},   {4, 12},
                         {12, 19}, {19, 28}, {28, 31}, {31, 40}, {40, 41},
                         {41, 42}, {0, 0},   {0, 0},   {42, 43}, {43, 44}};
@@ -76,24 +76,58 @@ bool is_keyword(char *word){
   };
 
   uint length = strlen(word);
-  if(length>MAX_KEYWORD_LENGTH){
-    return STRING_LITERAL;
+  if (length > MAX_KEYWORD_LENGTH) {
+    return false;
   }
   uint start = key_map[length][0];
   uint till = key_map[length][1];
-  for (uint i = start;i < till; i++) {
-    if(strncmp(keywords[i],word,length)==0){
-        return true;
+  for (uint i = start; i < till; i++) {
+    if (strncmp(keywords[i], word, length) == 0) {
+      return true;
     }
   }
   return false;
 }
 
-TOKEN_TYPE token_type(char *word) {
-   if(is_keyword(word)){
-        return KEYWORD;
+
+bool is_punctuator(char * word){
+    #define punc_count 13
+   char punctuator[punc_count][4]= {"#", ")", "{", ";", "...", "]", ":", "}", "*", "=", ",", "[", "("};
+   uint length = strlen(word);
+   if(length>4){
+    return false;
    }
-   return  STRING_LITERAL;
+   for (int i = 0; i < punc_count; ++i)
+   {
+       if(strcmp(punctuator[i],word)==0){
+        return true;
+       }
+   }
+   #undef punc_count
+   return false;
+}
+
+bool is_constant(char *word){
+    return false;
+}
+
+TOKEN_TYPE token_type(char *word) {
+  if (is_keyword(word)) {
+    return KEYWORD;
+  }
+  if(word[0]=='"' || word[0]=='\''){
+    return STRING_LITERAL;
+  }
+  if(is_punctuator(word)){
+    return PUNCTUATOR;
+  }
+  if(is_constant(word)){
+    return CONSTANT;
+  }
+  if(word[0]<'0' || word[0]>'9'){
+  return IDENTIFIER;
+  }
+  return UNKNOWN;
 }
 
 char *parse_quotes(char *code_buffer, TOKEN_TREE *tt, int line_count,
@@ -116,8 +150,13 @@ char *parse_quotes(char *code_buffer, TOKEN_TREE *tt, int line_count,
   }
   tt->tokens[tt->count].line_no = line_count;
   tt->tokens[tt->count].column = column;
-  tt->count++;
+  increment_token_count(tt);
   return code_buffer;
+}
+
+inline void increment_token_count(TOKEN_TREE *tt) {
+  tt->tokens[tt->count].type = token_type(tt->tokens[tt->count].value);
+  tt->count++;
 }
 
 TOKEN_TREE tokenizer(char *code_buffer) {
@@ -146,16 +185,16 @@ TOKEN_TREE tokenizer(char *code_buffer) {
     if (spcl == E_SYMBOLS) {
       if (word_letter_count) {
         word_letter_count = 0;
-        tt.count++;
+        increment_token_count(&tt);
       }
       tt.tokens[tt.count].value[word_letter_count] = cur_char;
       tt.tokens[tt.count].line_no = line_count;
       if (word_letter_count == 0)
         tt.tokens[tt.count].column = column;
-      tt.count++;
+      increment_token_count(&tt);
     } else if (spcl == E_SPLITTERS) {
       if (word_letter_count) {
-        tt.count++;
+        increment_token_count(&tt);
         word_letter_count = 0;
       }
     } else if (spcl == E_LINE_SWITCH) {
@@ -178,7 +217,8 @@ TOKEN_TREE tokenizer(char *code_buffer) {
 
 void print_token_tree(TOKEN_TREE tt) {
   for (int i = 0; i < tt.count; ++i) {
-    printf("[%d] '%s'  [%d|%d]\n", i, tt.tokens[i].value, tt.tokens[i].line_no,
-           tt.tokens[i].column);
+    printf("[%d] '%s'  [%d|%d] [%s] \n", i, tt.tokens[i].value,
+           tt.tokens[i].line_no, tt.tokens[i].column,
+           token_type_map[tt.tokens[i].type]);
   }
 }

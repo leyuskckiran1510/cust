@@ -8,8 +8,17 @@
         IDENTIFIER,
         CONSTANT,
         STRING_LITERAL,
-        PUNCTUATOR
+        PUNCTUATOR,
+        UNKNOWN
     }TOKEN_TYPE;
+
+    static char  token_type_map[6][15] = {
+        "KEYWORD",
+        "IDENTIFIER",
+        "CONSTANT",
+        "STRING_LITERAL",
+        "PUNCTUATOR",
+    };  
     
 
     typedef  struct{
@@ -29,4 +38,5 @@
     TOKEN_TREE tokenizer(char *);
     void print_token_tree(TOKEN_TREE);
     TOKEN_TYPE token_type(char *);
+    void increment_token_count(TOKEN_TREE *A);
 #endif

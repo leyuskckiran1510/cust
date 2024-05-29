@@ -47,7 +47,7 @@ int main(int argc,char **argv) {
     if(argc>1){
         tt= tokenizer(get_sample(toint(argv[1])));
     }else{
-         tt = tokenizer(get_sample(2));
+         tt = tokenizer(get_sample(1));
 
     }
     print_token_tree(tt);

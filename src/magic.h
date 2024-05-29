@@ -6,6 +6,10 @@
         #define malloc(x) track(malloc((x)))
         #define reallocarray(x,y,z) track(reallocarray(detrack((x)),(y),(z)))
         #define MAX_MALLOCS 100
+    
+        #define print(...) printf(__VA_ARGS__);
+
+
 
     void *track(void *);
     void* detrack(void *);
