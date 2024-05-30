@@ -9,15 +9,22 @@
 
 #define tt_val(tt) tt.tokens[tt.count].value
 
-static int GLOBAL_FLAG = 0; //-1 [errr] 0 [false] 1 [true], 
+static int GLOBAL_FLAG = 0; //-1 [errr] 0 [false] 1 [true],
 
-#define SET_FLAG() GLOBAL_FLAG=1;
-#define ERR_FLAG() GLOBAL_FLAG=-1;
-#define RESET_FLAG() GLOBAL_FLAG=0;
+#define SET_FLAG() GLOBAL_FLAG = 1;
+#define ERR_FLAG() GLOBAL_FLAG = -1;
+#define RESET_FLAG() GLOBAL_FLAG = 0;
 
-#define FLAG_ERR_DO(stmt) if(GLOBAL_FLAG==-1) {RESET_FLAG() ;stmt; }  
-#define FLAG_SET_DO(stmt) if(GLOBAL_FLAG==1) {RESET_FLAG() ;stmt; }  
-
+#define FLAG_ERR_DO(stmt)                                                      \
+  if (GLOBAL_FLAG == -1) {                                                     \
+    RESET_FLAG();                                                              \
+    stmt;                                                                      \
+  }
+#define FLAG_SET_DO(stmt)                                                      \
+  if (GLOBAL_FLAG == 1) {                                                      \
+    RESET_FLAG();                                                              \
+    stmt;                                                                      \
+  }
 
 #define CASES(X) case X:
 #define SYMBOLS                                                                \
@@ -28,6 +35,7 @@ static int GLOBAL_FLAG = 0; //-1 [errr] 0 [false] 1 [true],
   CASES('(')                                                                   \
   CASES(')')                                                                   \
   CASES('=')                                                                   \
+  CASES('#')                                                                   \
   CASES(';')
 
 #define SPLITTERS CASES(32) /* ' ' */
@@ -47,6 +55,10 @@ typedef enum {
   E_QUOTES,
   E_ESCAPE,
 } SPECIALS;
+
+static char token_type_map[6][15] = {
+    "KEYWORD", "IDENTIFIER", "CONSTANT", "STRING_LITERAL", "PUNCTUATOR",
+};
 
 int is_specials(char chr) {
   switch (chr) {
@@ -117,6 +129,10 @@ bool is_punctuator(char *word) {
 }
 
 bool is_digit(char ch) { return ch >= '0' && ch <= '9'; }
+bool is_octal(char ch) { return ch >= '0' && ch <= '7'; }
+bool is_hex(char ch) {
+  return is_digit(ch) || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F');
+}
 
 bool is_float_suffix(char ch) {
   // added NULL as this is optional
@@ -128,7 +144,7 @@ bool is_sign(char ch) { return '+' == ch || '-' == ch; }
 bool is_prefix_exponent(char ch) { return ch == 'e' || ch == 'E'; }
 
 char *consume_digi_sequence(char *word) {
-  while (*word != '\0' && is_digit(*word)) {
+  while (*word && is_digit(*word)) {
     word++;
   };
   return word;
@@ -195,7 +211,6 @@ floating-suffix: one of
   word = consume_fractional_constant(word);
   FLAG_ERR_DO(return false);
 
-
   word = consume_exponent_part(word);
   FLAG_ERR_DO(return false);
 
@@ -204,12 +219,98 @@ floating-suffix: one of
   }
   return false;
 }
+
+char *consume_hex_sequence(char *word) {
+  while (*word && is_hex(*word)) {
+    word++;
+  }
+  return word;
+}
+char *consume_octal_sequence(char *word) {
+  while (*word && is_octal(*word)) {
+    word++;
+  }
+  return word;
+}
+
+char *consume_64_bit_int_suffix(char *word) {
+  /*
+  64-bit-integer-suffix: one of
+          i64 I64
+  */
+  if (*word == '\0')
+    return word;
+  if (*word != 'i' && *word != 'I') {
+    ERR_FLAG();
+    return word;
+  }
+  word++;
+  if (*word != '6') {
+    ERR_FLAG();
+    return word;
+  }
+  if (*word != '4') {
+    ERR_FLAG();
+    return word;
+  }
+  return word;
+}
+
+char *consume_integer_suffix(char *word) {
+  /*
+  integer-suffix:
+      unsigned-suffix long-suffix ( opt )
+      unsigned-suffix long-long-suffix
+      unsigned-suffix 64-bit-integer-suffix
+      long-suffix unsigned-suffix ( opt )
+      long-long-suffix unsigned-suffix ( opt )
+      64-bit-integer-suffix ( opt )
+
+  unsigned-suffix: one of
+      u U
+
+  long-suffix: one of
+      l L
+
+  long-long-suffix: one of
+      ll LL
+*/
+  // handle unsigned-suffix
+  if (*word == 'u' || *word == 'U') {
+    word++;
+    // handle long-suffix
+    if (*word == 'l' || *word == 'L')
+      word++;
+    // handle long-long-suffix
+    if (*word == 'l' || *word == 'L')
+      word++;
+  }
+  if (*word == 'l' || *word == 'L') {
+    word++;
+    // handle long-long-suffix
+    if (*word == 'l' || *word == 'L')
+      word++;
+    // handle unsigned-suffix
+    if (*word == 'u' || *word == 'U')
+      word++;
+  }
+
+  // handle 64-bit-integer-suffix
+  word = consume_64_bit_int_suffix(word);
+  FLAG_ERR_DO(ERR_FLAG(); return word;)
+  if (*word == '\0') {
+    return word;
+  }
+  ERR_FLAG();
+  return word;
+}
 bool integer_constant(char *word) {
   /*
     integer-constant:
-    decimal-constant integer-suffix ( opt ) 
-    octal-constant integer-suffix ( opt ) 
-    hexadecimal-constant integer-suffix ( opt ) 
+    decimal-constant integer-suffix ( opt )
+    octal-constant integer-suffix ( opt )
+    hexadecimal-constant integer-suffix ( opt )
+    binary-constant integer-suffix ( opt )
 
 decimal-constant:
     nonzero-digit
@@ -237,31 +338,26 @@ hexadecimal-digit: one of
     a b c d e f
     A B C D E F
 
-integer-suffix:
-    unsigned-suffix long-suffix ( opt ) 
-    unsigned-suffix long-long-suffix
-    unsigned-suffix 64-bit-integer-suffix
-    long-suffix unsigned-suffix ( opt ) 
-    long-long-suffix unsigned-suffix ( opt ) 
-    64-bit-integer-suffix
-
-unsigned-suffix: one of
-    u U
-
-long-suffix: one of
-    l L
-
-long-long-suffix: one of
-    ll LL
-
-64-bit-integer-suffix: one of
-    i64 I64
-
-
-
-
   */
-  return false;
+  if (is_sign(*word)) {
+    word++;
+  }
+  if (*word == '0') {
+    word++;
+    if (*word == 'x' || *word == 'X') {
+      word++;
+      word = consume_hex_sequence(word);
+    } else {
+
+      word = consume_octal_sequence(word);
+    }
+  } else {
+    word = consume_digi_sequence(word);
+    FLAG_ERR_DO(return false;)
+  }
+  word = consume_integer_suffix(word);
+  FLAG_ERR_DO(return false;)
+  return true;
 }
 bool enumeration_constant(char *word) {
   (void)word;
@@ -280,6 +376,20 @@ bool is_constant(char *word) {
   return false;
 }
 
+bool is_non_digit(char ch) {
+  return '_' == ch || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
+}
+
+bool is_identifier(char *word) {
+  if (is_digit(*word)) {
+    return false;
+  }
+  while (*word && (is_non_digit(*word) || is_digit(*word))) {
+    word++;
+  }
+  return *word == '\0';
+}
+
 TOKEN_TYPE token_type(char *word) {
   if (is_keyword(word)) {
     return KEYWORD;
@@ -293,7 +403,7 @@ TOKEN_TYPE token_type(char *word) {
   if (is_constant(word)) {
     return CONSTANT;
   }
-  if (word[0] < '0' || word[0] > '9') {
+  if (is_identifier(word)) {
     return IDENTIFIER;
   }
   return UNKNOWN;

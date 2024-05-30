@@ -1,39 +1,29 @@
 #ifndef __TOKENIZER__
     #include <stdint.h>
     #define __TOKENIZER__
-    #define MAX_TOKEN_SIZE  100
-    
-    typedef enum{
-        KEYWORD,
-        IDENTIFIER,
-        CONSTANT,
-        STRING_LITERAL,
-        PUNCTUATOR,
-        UNKNOWN
-    }TOKEN_TYPE;
+    #define MAX_TOKEN_SIZE 100
 
-    static char  token_type_map[6][15] = {
-        "KEYWORD",
-        "IDENTIFIER",
-        "CONSTANT",
-        "STRING_LITERAL",
-        "PUNCTUATOR",
-    };  
-    
-
-    typedef  struct{
-        char value[MAX_TOKEN_SIZE];
-        TOKEN_TYPE type;
-        uint8_t line_no;
-        uint8_t column;
-    } TOKEN;
-
+    typedef enum {
+      KEYWORD,
+      IDENTIFIER,
+      CONSTANT,
+      STRING_LITERAL,
+      PUNCTUATOR,
+      UNKNOWN
+    } TOKEN_TYPE;
 
     typedef struct {
-        TOKEN* tokens;
-        int count;
-        int capacity;
-    }TOKEN_TREE;
+      char value[MAX_TOKEN_SIZE];
+      TOKEN_TYPE type;
+      uint8_t line_no;
+      uint8_t column;
+    } TOKEN;
+
+    typedef struct {
+      TOKEN *tokens;
+      int count;
+      int capacity;
+    } TOKEN_TREE;
 
     TOKEN_TREE tokenizer(char *);
     void print_token_tree(TOKEN_TREE);
