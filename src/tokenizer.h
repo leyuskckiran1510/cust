@@ -9,6 +9,7 @@
       CONSTANT,
       STRING_LITERAL,
       PUNCTUATOR,
+      OPERATOR,
       UNKNOWN
     } TOKEN_TYPE;
 

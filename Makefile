@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -ggdb3 -Wall -Wextra -pedantic -I./src  -lpthread -fsanitize=address 
+CFLAGS = -ggdb3 -Wall -Wextra -pedantic -I./src  -lpthread  -fsanitize=address
 
 SRCDIR = src
 INCDIR = include
@@ -25,6 +25,7 @@ $(BUILDDIR)/%.o: $(SRCDIR)/%.c
 
 run:
 	./$(EXECUTABLE) $(argv)
+
 
 r:run
 dg:

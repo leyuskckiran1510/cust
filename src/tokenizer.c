@@ -20,6 +20,7 @@ static int GLOBAL_FLAG = 0; //-1 [errr] 0 [false] 1 [true],
     RESET_FLAG();                                                              \
     stmt;                                                                      \
   }
+
 #define FLAG_SET_DO(stmt)                                                      \
   if (GLOBAL_FLAG == 1) {                                                      \
     RESET_FLAG();                                                              \
@@ -56,8 +57,8 @@ typedef enum {
   E_ESCAPE,
 } SPECIALS;
 
-static char token_type_map[6][15] = {
-    "KEYWORD", "IDENTIFIER", "CONSTANT", "STRING_LITERAL", "PUNCTUATOR",
+static char token_type_map[7][15] = {
+    "KEYWORD", "IDENTIFIER", "CONSTANT", "STRING_LITERAL", "PUNCTUATOR","OPERATOR"
 };
 
 int is_specials(char chr) {
@@ -368,6 +369,36 @@ bool character_constant(char *word) {
   return false;
 }
 
+bool is_operator(char *word) {
+#define specials_count 2
+#define operator_count 17
+  char special[specials_count][10] = {
+      "_Alignof", "sizeof"
+      // , "++", "--", "<<", ">>",
+      // "<=",       ">=",     "==", "!=", "&&", "||",
+  };
+  char operators[operator_count] = {'-', '~', '!', '*', '&', '+', '*', '/', '%',
+                                    '+', '-', '<', '>', '&', '|', '^', ','};
+  int word_len = strlen(word);
+  if (word_len == 1) {
+    for (size_t i = 0; i < operator_count; ++i) {
+      if (*word == operators[i]) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+  for (int i = 0; i < specials_count; ++i) {
+    if (!strncmp(word, special[i], word_len)) {
+      return true;
+    }
+  }
+
+  return false;
+#undef specials_count
+#undef operator_count
+}
 bool is_constant(char *word) {
   if ((is_floating_point_constant(word) || integer_constant(word) ||
        enumeration_constant(word) || character_constant(word))) {
@@ -405,6 +436,9 @@ TOKEN_TYPE token_type(char *word) {
   }
   if (is_identifier(word)) {
     return IDENTIFIER;
+  }
+  if (is_operator(word)) {
+    return OPERATOR;
   }
   return UNKNOWN;
 }
