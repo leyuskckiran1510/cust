@@ -39,9 +39,7 @@ static int GLOBAL_FLAG = 0; //-1 [errr] 0 [false] 1 [true],
   CASES('#')                                                                   \
   CASES(';')
 
-#define SPLITTERS                                                              \
-  CASES(32) /* ' ' */                                                          \
-  CASES(',')
+#define SPLITTERS CASES(32) /* ' ' */
 
 #define LINE_SWITCH CASES(10) /* '\n' */
 
@@ -364,11 +362,12 @@ hexadecimal-digit: one of
 }
 
 bool is_operator(char *word) {
-#define specials_count 12
+#define specials_count 2
 #define operator_count 17
   char special[specials_count][10] = {
-      "_Alignof", "sizeof", "++", "--", "<<", ">>",
-      "<=",       ">=",     "==", "!=", "&&", "||",
+      "_Alignof", "sizeof"
+      // , "++", "--", "<<", ">>",
+      // "<=",       ">=",     "==", "!=", "&&", "||",
   };
   char operators[operator_count] = {'-', '~', '!', '*', '&', '+', '*', '/', '%',
                                     '+', '-', '<', '>', '&', '|', '^', ','};
@@ -459,16 +458,6 @@ char *parse_quotes(char *code_buffer, TOKEN_TREE *tt, int line_count,
   return code_buffer;
 }
 
-char *parse_comment(char *code_buffer) {
-  uint type = code_buffer[1] == '*';
-  while (*code_buffer && ((!(*code_buffer == '\n' && !type)) ||
-           !(*code_buffer == '*' && code_buffer[1] == '/'))) {
-    code_buffer++;
-  }
-  code_buffer++;
-  return code_buffer;
-}
-
 inline void increment_token_count(TOKEN_TREE *tt) {
   tt->tokens[tt->count].type = token_type(tt->tokens[tt->count].value);
   tt->count++;
@@ -497,10 +486,7 @@ TOKEN_TREE tokenizer(char *code_buffer) {
         tt.tokens = new;
       }
     }
-
-    if (cur_char == '/' && (code_buffer[1] == '*' || code_buffer[1] == '/')) {
-      code_buffer = parse_comment(code_buffer);
-    } else if (spcl == E_SYMBOLS) {
+    if (spcl == E_SYMBOLS) {
       if (word_letter_count) {
         word_letter_count = 0;
         increment_token_count(&tt);
