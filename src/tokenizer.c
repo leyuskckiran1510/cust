@@ -1,5 +1,4 @@
 #include "tokenizer.h"
-#include <errno.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -133,25 +132,29 @@ bool is_punctuator(char *word) {
 
 bool is_digit(char ch) { return ch >= '0' && ch <= '9'; }
 bool is_octal(char ch) { return ch >= '0' && ch <= '7'; }
+bool is_sign(char ch) { return '+' == ch || '-' == ch; }
+bool is_prefix_exponent(char ch) { return ch == 'e' || ch == 'E'; }
 bool is_hex(char ch) {
   return is_digit(ch) || (ch >= 'a' && ch <= 'f') || (ch >= 'A' && ch <= 'F');
 }
-
 bool is_float_suffix(char ch) {
-  // added NULL as this is optional
-  return 'f' == ch || 'F' == ch || 'l' == ch || 'L' == ch || '\0' == ch;
+    return 'f' == ch || 'F' == ch || 'l' == ch || 'L' == ch || '\0' == ch;
 }
 
-bool is_sign(char ch) { return '+' == ch || '-' == ch; }
+typedef bool (*validat)(char);
 
-bool is_prefix_exponent(char ch) { return ch == 'e' || ch == 'E'; }
 
-char *consume_digi_sequence(char *word) {
-  while (*word && is_digit(*word)) {
-    word++;
-  };
-  return word;
+char* _just_consume(char *word,validat func){
+    while (*word && func(*word)) {
+        word++;
+      };
+    return word;
 }
+
+#define consume_digi_sequence(x) _just_consume(x,&is_digit)
+#define consume_hex_sequence(x) _just_consume(x,&is_hex)
+#define consume_octal_sequence(x) _just_consume(x,&is_octal)
+
 
 char *consume_fractional_constant(char *word) {
   /*
@@ -223,18 +226,6 @@ floating-suffix: one of
   return false;
 }
 
-char *consume_hex_sequence(char *word) {
-  while (*word && is_hex(*word)) {
-    word++;
-  }
-  return word;
-}
-char *consume_octal_sequence(char *word) {
-  while (*word && is_octal(*word)) {
-    word++;
-  }
-  return word;
-}
 
 char *consume_64_bit_int_suffix(char *word) {
   /*
@@ -490,12 +481,7 @@ TOKEN_TREE tokenizer(char *code_buffer) {
     // for some cases
     if ((tt.count + 3) >= tt.capacity) {
       tt.capacity *= 2;
-      void *new = reallocarray(tt.tokens, sizeof(TOKEN), tt.capacity);
-      if (new == NULL) {
-        fprintf(stderr, "Error Allocating memeory %s", strerror(errno));
-      } else {
-        tt.tokens = new;
-      }
+      tt.tokens = reallocarray(tt.tokens, sizeof(TOKEN), tt.capacity);
     }
 
     if (cur_char == '/' && (code_buffer[1] == '*' || code_buffer[1] == '/')) {

@@ -15,6 +15,10 @@ EXECUTABLE = $(BUILDDIR)/exe.exe
 
 all:$(EXECUTABLE)
 
+test:
+	$(CC) $(SRCDIR)/test.c -o $(EXECUTABLE) $(CFLAGS)
+	./$(EXECUTABLE) $(argv)
+t:test
 
 $(EXECUTABLE):$(OBJS)
 	$(CC)  $^ -o $@ $(CFLAGS)

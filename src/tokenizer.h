@@ -10,6 +10,7 @@
       STRING_LITERAL,
       PUNCTUATOR,
       OPERATOR,
+      INCLUDE_HEADER,
       UNKNOWN
     } TOKEN_TYPE;
 
