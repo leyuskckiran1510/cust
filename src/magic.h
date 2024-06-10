@@ -3,6 +3,7 @@
     #include <errno.h>
     #include <stdint.h>
     #include <stdlib.h>
+
         #define __MAGIC__
 
         static uint __DEFER = 0;
@@ -14,7 +15,6 @@
         #define return {free_recent_n(__DEFER);__DEFER=0;}return
     
         #define print(...) printf(__VA_ARGS__);
-
 
     void *track(void *);
     void* detrack(void *);

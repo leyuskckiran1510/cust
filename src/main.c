@@ -16,6 +16,7 @@ char* get_sample_file(int x) {
     return path;
 }
 
+
 char* get_sample(int x) {
     char* data;
     FILE* fp = open_sample(x);
@@ -32,6 +33,8 @@ char* get_sample(int x) {
     file_size = fread(data, sizeof(char), file_size, fp);
     return data;
 }
+
+
 int toint(char *str){
     int value=0;
     while (str[0]){
@@ -47,8 +50,7 @@ int main(int argc,char **argv) {
     if(argc>1){
         tt= tokenizer(get_sample(toint(argv[1])));
     }else{
-    tt = tokenizer(get_sample(1));
-
+        tt = tokenizer(get_sample(1));
     }
     print_token_tree(tt);
     free_recent();

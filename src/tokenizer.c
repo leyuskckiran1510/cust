@@ -36,7 +36,8 @@ static int GLOBAL_FLAG = 0; //-1 [errr] 0 [false] 1 [true],
   CASES(')')                                                                   \
   CASES('=')                                                                   \
   CASES('#')                                                                   \
-  CASES(';')
+  CASES(';') \
+  CASES('|')
 
 #define SPLITTERS                                                              \
   CASES(32) /* ' ' */                                                          \
@@ -67,6 +68,7 @@ int is_specials(char chr) {
     SPLITTERS
     return E_SPLITTERS;
     SYMBOLS
+
     return E_SYMBOLS;
     QUOTES
     return E_QUOTES;
@@ -76,15 +78,17 @@ int is_specials(char chr) {
     return E_LINE_SWITCH;
   default:
     return E_NON_SPECIAL;
-    // printf("Splitter found [%s]\n",tt_val(tt));
   }
 }
 
 bool is_keyword(char *word) {
 #define MAX_KEYWORD_LENGTH 14
-  int key_map[15][2] = {{0, 0},   {0, 0},   {0, 2},   {2, 4},   {4, 12},
+  int key_map[15][2] = {
+                        {0, 0},   {0, 0},   {0, 2},   {2, 4},   {4, 12},
                         {12, 19}, {19, 28}, {28, 31}, {31, 40}, {40, 41},
-                        {41, 42}, {0, 0},   {0, 0},   {42, 43}, {43, 44}};
+                        {41, 42}, {0, 0},   {0, 0},   {42, 43}, {43, 44}
+                    };
+
   char keywords[45][14] = {
       "if",        "do",         "for",           "int",
       "auto",      "char",       "goto",          "long",
@@ -112,6 +116,7 @@ bool is_keyword(char *word) {
   }
   return false;
 }
+
 
 bool is_punctuator(char *word) {
 #define punc_count 13
@@ -157,27 +162,18 @@ char* _just_consume(char *word,validat func){
 
 
 char *consume_fractional_constant(char *word) {
-  /*
-  fractional-constant:
-      digit-sequence (opt) . digit-sequence
-      digit-sequence .
-  */
   word = consume_digi_sequence(word);
   if (*word != '.') {
     ERR_FLAG();
     return word;
   }
-
   word++;
   return consume_digi_sequence(word);
 }
 
+
+
 char *consume_exponent_part(char *word) {
-  /*
-  exponent-part:
-    e sign (opt) digit-sequence
-    E sign (opt) digit-sequence
-  */
   if (is_prefix_exponent(*word)) {
     word++;
   }
@@ -187,30 +183,8 @@ char *consume_exponent_part(char *word) {
   return consume_digi_sequence(word);
 }
 
+
 bool is_floating_point_constant(char *word) {
-  /*
-floating-point-constant:
-  sign(opt)  fractional-constant exponent-part (opt) floating-suffix (opt)
-  sign(opt)  digit-sequence exponent-part floating-suffix (opt)
-
-fractional-constant:
-  digit-sequence (opt) . digit-sequence
-  digit-sequence .
-
-exponent-part:
-  e sign (opt) digit-sequence
-  E sign (opt) digit-sequence
-
-sign: one of
-  + -
-
-digit-sequence:
-  digit
-  digit-sequence digit
-
-floating-suffix: one of
-  f l F L
-  */
   if (is_sign(*word)) {
     word++;
   }
@@ -228,10 +202,6 @@ floating-suffix: one of
 
 
 char *consume_64_bit_int_suffix(char *word) {
-  /*
-  64-bit-integer-suffix: one of
-          i64 I64
-  */
   if (*word == '\0')
     return word;
   if (*word != 'i' && *word != 'I') {
@@ -250,25 +220,8 @@ char *consume_64_bit_int_suffix(char *word) {
   return word;
 }
 
+
 char *consume_integer_suffix(char *word) {
-  /*
-  integer-suffix:
-      unsigned-suffix long-suffix ( opt )
-      unsigned-suffix long-long-suffix
-      unsigned-suffix 64-bit-integer-suffix
-      long-suffix unsigned-suffix ( opt )
-      long-long-suffix unsigned-suffix ( opt )
-      64-bit-integer-suffix ( opt )
-
-  unsigned-suffix: one of
-      u U
-
-  long-suffix: one of
-      l L
-
-  long-long-suffix: one of
-      ll LL
-*/
   // handle unsigned-suffix
   if (*word == 'u' || *word == 'U') {
     word++;
@@ -298,41 +251,8 @@ char *consume_integer_suffix(char *word) {
   ERR_FLAG();
   return word;
 }
+
 bool integer_constant(char *word) {
-  /*
-    integer-constant:
-    decimal-constant integer-suffix ( opt )
-    octal-constant integer-suffix ( opt )
-    hexadecimal-constant integer-suffix ( opt )
-    binary-constant integer-suffix ( opt )
-
-decimal-constant:
-    nonzero-digit
-    decimal-constant digit
-
-octal-constant:
-    0
-    octal-constant octal-digit
-
-hexadecimal-constant:
-    hexadecimal-prefix hexadecimal-digit
-    hexadecimal-constant hexadecimal-digit
-
-hexadecimal-prefix: one of
-    0x 0X
-
-nonzero-digit: one of
-    1 2 3 4 5 6 7 8 9
-
-octal-digit: one of
-    0 1 2 3 4 5 6 7
-
-hexadecimal-digit: one of
-    0 1 2 3 4 5 6 7 8 9
-    a b c d e f
-    A B C D E F
-
-  */
   if (is_sign(*word)) {
     word++;
   }
@@ -361,8 +281,11 @@ bool is_operator(char *word) {
       "_Alignof", "sizeof", "++", "--", "<<", ">>",
       "<=",       ">=",     "==", "!=", "&&", "||",
   };
-  char operators[operator_count] = {'-', '~', '!', '*', '&', '+', '*', '/', '%',
-                                    '+', '-', '<', '>', '&', '|', '^', ','};
+  char operators[operator_count] = {
+                    '-', '~', '!', '*', '&', '+', '*', '/', '%',
+                    '+', '-', '<', '>', '&', '|', '^', ','
+  };
+
   int word_len = strlen(word);
   if (word_len == 1) {
     for (size_t i = 0; i < operator_count; ++i) {
@@ -370,19 +293,20 @@ bool is_operator(char *word) {
         return true;
       }
     }
-
     return false;
   }
+
   for (int i = 0; i < specials_count; ++i) {
     if (!strncmp(word, special[i], word_len)) {
       return true;
     }
   }
-
   return false;
+
 #undef specials_count
 #undef operator_count
 }
+
 bool is_constant(char *word) {
   if ((is_floating_point_constant(word) || integer_constant(word))) {
     return true;
@@ -390,9 +314,11 @@ bool is_constant(char *word) {
   return false;
 }
 
+
 bool is_non_digit(char ch) {
   return '_' == ch || (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
 }
+
 
 bool is_identifier(char *word) {
   if (is_digit(*word)) {
@@ -403,6 +329,7 @@ bool is_identifier(char *word) {
   }
   return *word == '\0';
 }
+
 
 TOKEN_TYPE token_type(char *word) {
   if (is_keyword(word)) {
@@ -425,6 +352,7 @@ TOKEN_TYPE token_type(char *word) {
   }
   return UNKNOWN;
 }
+
 
 char *parse_quotes(char *code_buffer, TOKEN_TREE *tt, int line_count,
                    int column) {
@@ -450,6 +378,7 @@ char *parse_quotes(char *code_buffer, TOKEN_TREE *tt, int line_count,
   return code_buffer;
 }
 
+
 char *parse_comment(char *code_buffer) {
   uint type = code_buffer[1] == '*';
   while (*code_buffer && ((!(*code_buffer == '\n' && !type)) ||
@@ -465,6 +394,7 @@ inline void increment_token_count(TOKEN_TREE *tt) {
   tt->count++;
 }
 
+
 TOKEN_TREE tokenizer(char *code_buffer) {
   TOKEN_TREE tt = {0};
 
@@ -477,8 +407,6 @@ TOKEN_TREE tokenizer(char *code_buffer) {
   while (code_buffer[0]) {
     cur_char = code_buffer[0];
     int spcl = is_specials(cur_char);
-    // doing +3 beacause thier is mutiple count increment
-    // for some cases
     if ((tt.count + 3) >= tt.capacity) {
       tt.capacity *= 2;
       tt.tokens = reallocarray(tt.tokens, sizeof(TOKEN), tt.capacity);
@@ -518,6 +446,7 @@ TOKEN_TREE tokenizer(char *code_buffer) {
   }
   return tt;
 }
+
 
 void print_token_tree(TOKEN_TREE tt) {
   for (int i = 0; i < tt.count; ++i) {
